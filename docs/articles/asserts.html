@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Asserts are more than enough — ~/boxDev2008</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            mono: ['JetBrains Mono', 'monospace'],
+            serif: ['Libre Baskerville', 'serif'],
+          },
+          colors: {
+            bg:      '#1c1c1e',
+            surface: '#242426',
+            border:  '#2e2e30',
+            muted:   '#6b6b72',
+            text:    '#d4d4d8',
+            bright:  '#f0f0f0',
+            accent:  '#c8a84b',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #1c1c1e; color: #d4d4d8; }
+    ::selection { background: #c8a84b33; }
+    a { transition: color .15s; }
+    pre { background: #242426; border: 1px solid #2e2e30; border-radius: 8px; padding: 1.25rem; overflow-x: auto; }
+    code { font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; }
+    p code { background: #242426; border: 1px solid #2e2e30; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.82rem; }
+    .prose p { margin-bottom: 1.25rem; line-height: 1.8; }
+    .prose h2 { font-family: 'Libre Baskerville', serif; font-size: 1.3rem; font-weight: 700; color: #f0f0f0; margin: 2.5rem 0 1rem; }
+    .prose h3 { font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; color: #c8a84b; margin: 2rem 0 0.75rem; }
+    .prose pre { margin: 1.5rem 0; }
+    .prose ul { list-style: disc; padding-left: 1.5rem; margin-bottom: 1.25rem; }
+    .prose ul li { margin-bottom: 0.5rem; line-height: 1.7; }
+    .fade-in { animation: fadeUp .5s ease both; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body class="font-serif antialiased min-h-screen">
+
+  <nav class="border-b border-border sticky top-0 z-50 backdrop-blur-sm bg-bg/90">
+    <div class="max-w-3xl mx-auto px-6 h-14 flex items-center justify-between">
+      <a href="index.html" class="font-mono text-accent font-medium tracking-tight text-sm hover:text-bright">~/boxDev2008</a>
+      <div class="flex gap-6 font-mono text-xs text-muted">
+        <a href="index.html#about"    class="hover:text-text">about</a>
+        <a href="index.html#projects" class="hover:text-text">projects</a>
+        <a href="index.html#writing"  class="hover:text-text">writing</a>
+        <a href="index.html#contact"  class="hover:text-text">contact</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-2xl mx-auto px-6 py-16 fade-in">
+
+    <a href="index.html#writing" class="font-mono text-xs text-muted hover:text-accent transition-colors">← back to writing</a>
+
+    <div class="mt-8 mb-12">
+      <p class="font-mono text-accent text-xs tracking-widest uppercase mb-3">Feb 2026</p>
+      <h1 class="font-serif text-3xl md:text-4xl text-bright font-bold leading-tight mb-4">Asserts are more than enough</h1>
+      <p class="text-muted font-mono text-xs">~8 min read</p>
+    </div>
+
+    <article class="prose text-text">
+
+      <p>
+        There's a pattern I've noticed in codebases that have grown beyond one person's head: error handling starts
+        reasonable, then balloons into a second shadow program — layers of <code>Result&lt;T, E&gt;</code>, custom error enums,
+        propagation macros, error contexts, error contexts for the error contexts. The actual logic drowns in ceremony.
+        Meanwhile the bugs that kill products in production aren't subtle network timeouts — they're invariant
+        violations that should never have been possible at all.
+      </p>
+
+      <p>
+        My take, after shipping a few real systems: <strong style="color: #f0f0f0;">most of what you want is just a well-placed assert.</strong>
+      </p>
+
+      <h2>What asserts actually do</h2>
+
+      <p>
+        An assert is a contract. It says: <em>"If this is false, my program's logic is broken. Don't try to recover.
+        Crash immediately and loudly."</em> That's it. No allocation, no vtable dispatch, no log pipeline. Just
+        a conditional and an abort.
+      </p>
+
+      <pre><code>#include &lt;assert.h&gt;
+
+void push(Stack *s, int val) {
+    assert(s != NULL);
+    assert(s->len &lt; s->cap);
+    s->data[s->len++] = val;
+}</code></pre>
+
+      <p>
+        Read this and you immediately know: the caller is responsible for not passing null and for not overfilling
+        the stack. No return value to check. No error propagation. If either condition is violated, you get
+        a crash with a file and line number pointing exactly at the bug. That's more useful than a silent
+        <code>NULL</code> return that manifests as a crash three call frames later.
+      </p>
+
+      <h2>The two categories of failure</h2>
+
+      <p>
+        Before anything else, you need to internalize a distinction that most codebases blur:
+      </p>
+
+      <ul>
+        <li><strong style="color: #f0f0f0;">Programming errors</strong> — invariant violations, broken preconditions, logic bugs. These are your fault. They should never happen in correct code. <em>Assert these.</em></li>
+        <li><strong style="color: #f0f0f0;">Environmental failures</strong> — file not found, network timeout, OOM. These depend on the world outside your binary. <em>Handle these with real error paths.</em></li>
+      </ul>
+
+      <p>
+        The mistake most people make is treating programming errors as recoverable. They return <code>false</code>
+        from a function when an index is out of bounds, and then some caller ignores it, and then you spend
+        three hours in a debugger. An out-of-bounds index is a bug. Crash. Fix it. Move on.
+      </p>
+
+      <h2>Asserts in release builds</h2>
+
+      <p>
+        The common objection: "But asserts get compiled out with <code>NDEBUG</code>!" True for the standard
+        <code>assert()</code>. The solution is trivial — write your own:
+      </p>
+
+      <pre><code>#define ASSERT(cond) \
+    do { \
+        if (!(cond)) { \
+            fprintf(stderr, "ASSERT failed: %s\n  at %s:%d\n", \
+                    #cond, __FILE__, __LINE__); \
+            abort(); \
+        } \
+    } while(0)</code></pre>
+
+      <p>
+        Now it stays in release. "But what about performance?" If your hot path is assert-heavy enough that
+        this matters, you have bigger problems. Most asserts are on function entry — they run once per call
+        and the branch predictor will never miss on them. The overhead is immeasurable.
+      </p>
+
+      <p>
+        For the genuinely hot paths, you can add a <code>DEBUG_ASSERT</code> variant that strips in release.
+        But be honest about when you actually need that. Usually you don't.
+      </p>
+
+      <h2>Asserts as documentation</h2>
+
+      <p>
+        This is the underrated benefit. When I see:
+      </p>
+
+      <pre><code>Matrix4 invert(Matrix4 m) {
+    float det = determinant(m);
+    assert(fabsf(det) &gt; 1e-6f && "Matrix must be invertible");
+    // ...
+}</code></pre>
+
+      <p>
+        I know exactly what this function requires without reading a docstring (that may be stale). The assert
+        is executable documentation. It runs on every call in debug. It cannot go out of sync with the code
+        the way comments do. It is, in a very real sense, the best kind of documentation: verifiable.
+      </p>
+
+      <h2>Where asserts fall short</h2>
+
+      <p>
+        I'm not saying throw away error handling. File I/O fails. Memory allocation fails (sometimes).
+        User input is always garbage. For these, you do need real error paths — and they should be explicit
+        and visible at the call site.
+      </p>
+
+      <p>
+        The point isn't to assert everything. The point is to stop reaching for complex error machinery
+        when you actually mean "this is a bug, catch it hard." Save the heavy lifting for failures that
+        are genuinely expected and recoverable.
+      </p>
+
+      <h2>A practical heuristic</h2>
+
+      <p>
+        Before adding an error return to a function, ask: <em>can this condition ever be true in correct code?</em>
+        If the answer is no — if it would only happen because of a bug in the caller — make it an assert.
+        Reserve <code>bool</code>/<code>Result</code>/error codes for things that can fail in a fully correct program
+        due to factors outside your control.
+      </p>
+
+      <p>
+        You'll find your codebases get smaller, faster to read, and easier to debug. The asserts will catch
+        bugs at the exact moment they're introduced. And you'll stop wading through error propagation chains
+        to diagnose what is, at the end of the day, a typo in an index calculation.
+      </p>
+
+      <p>
+        Most of the time, assert is more than enough. Trust it.
+      </p>
+
+    </article>
+
+  </main>
+
+  <footer class="border-t border-border mt-8">
+    <div class="max-w-3xl mx-auto px-6 py-6 font-mono text-xs text-muted flex justify-between">
+      <span>~/boxDev2008</span>
+      <span>built with spite and tailwind</span>
+    </div>
+  </footer>
+
+</body>
+</html>

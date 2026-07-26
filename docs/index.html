@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Your Name — Systems Programmer</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.1/flowbite.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            mono: ['JetBrains Mono', 'monospace'],
+            serif: ['Libre Baskerville', 'serif'],
+          },
+          colors: {
+            bg:      '#1c1c1e',
+            surface: '#242426',
+            border:  '#2e2e30',
+            muted:   '#6b6b72',
+            text:    '#d4d4d8',
+            bright:  '#f0f0f0',
+            accent:  '#c8a84b',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #1c1c1e; color: #d4d4d8; }
+    ::selection { background: #c8a84b33; }
+    a { transition: color .15s; }
+    .tag { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; }
+    .fade-in { animation: fadeUp .5s ease both; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .delay-1 { animation-delay: .1s; }
+    .delay-2 { animation-delay: .2s; }
+    .delay-3 { animation-delay: .3s; }
+    .delay-4 { animation-delay: .4s; }
+  </style>
+</head>
+<body class="font-serif antialiased min-h-screen">
+
+  <!-- Space Canvas -->
+  <canvas id="spaceCanvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;"></canvas>
+
+  <!-- Nav -->
+  <nav class="border-b border-border sticky top-0 z-50 backdrop-blur-sm bg-bg/90" style="position:relative;z-index:50;">
+    <div class="max-w-3xl mx-auto px-6 h-14 flex items-center justify-between">
+      <span class="font-mono text-accent font-medium tracking-tight text-sm">~/boxDev2008</span>
+      <div class="flex gap-6 font-mono text-xs text-muted">
+        <a href="#about"    class="hover:text-text">about</a>
+        <a href="#projects" class="hover:text-text">projects</a>
+        <a href="#writing"  class="hover:text-text">writing</a>
+        <a href="#contact"  class="hover:text-text">contact</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-3xl mx-auto px-6" style="position:relative;z-index:1;">
+
+        <!-- Hero -->
+    <section id="about" class="pt-20 pb-16 fade-in">
+      <div class="flex items-start justify-between gap-8">
+        <div class="flex-1">
+          <p class="font-mono text-accent text-xs mb-3 tracking-widest uppercase">Systems Programmer</p>
+          <h1 class="font-serif text-4xl md:text-5xl text-bright font-bold leading-tight mb-5">
+            Kiril Abadjiev
+          </h1>
+          <p class="text-text leading-relaxed text-lg max-w-xl">
+            Hi! I talk about low-level programming topics in (mostly) C/C++.
+          </p>
+          <div class="mt-6 flex gap-4 font-mono text-xs">
+            <a href="https://github.com" class="text-accent hover:text-bright border border-border hover:border-accent/50 px-3 py-1.5 rounded transition-all">github</a>
+            <a href="/cdn-cgi/l/email-protection#86ffe9f3c6e3fee7ebf6eae3a8e5e9eb" class="text-muted hover:text-text border border-border px-3 py-1.5 rounded transition-all">email</a>
+          </div>
+        </div>
+        <div class="shrink-0">
+          <img src="images/front-face.png" alt="Profile" class="w-44 md:w-52 rounded-lg border border-border object-cover object-top" style="aspect-ratio:3/4;" />
+        </div>
+      </div>
+    </section>
+
+    <hr class="border-border" />
+
+        <!-- Projects -->
+    <section id="projects" class="py-14 fade-in delay-1">
+      <h2 class="font-mono text-xs text-muted tracking-widest uppercase mb-8">Projects</h2>
+      <div class="flex flex-col gap-5">
+
+        <a href="https://github.com/boxDev2008/Magma" target="_blank" class="group block bg-surface border border-border hover:border-accent/40 rounded-lg p-5 transition-all">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <h3 class="font-mono text-bright font-medium text-sm group-hover:text-accent transition-colors mb-1">Magma</h3>
+              <p class="text-text text-sm leading-relaxed">
+                A simple set of single headers libraries for game/app development in C. Includes a custom shader compiler and additional utilities.
+              </p>
+            </div>
+            <span class="text-muted group-hover:text-accent transition-colors shrink-0 mt-0.5">↗</span>
+          </div>
+          <div class="mt-3 flex gap-2">
+            <span class="tag bg-bg text-muted border border-border px-2 py-0.5 rounded">C</span>
+            <span class="tag bg-bg text-muted border border-border px-2 py-0.5 rounded">C++</span>
+            <span class="tag bg-bg text-muted border border-border px-2 py-0.5 rounded">Vulkan</span>
+            <span class="tag bg-bg text-muted border border-border px-2 py-0.5 rounded">gamedev</span>
+          </div>
+        </a>
+
+        <a href="https://github.com/boxDev2008/Floof" target="_blank" class="group block bg-surface border border-border hover:border-accent/40 rounded-lg p-5 transition-all">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <h3 class="font-mono text-bright font-medium text-sm group-hover:text-accent transition-colors mb-1">Floof</h3>
+              <p class="text-text text-sm leading-relaxed">
+                Yet another language that tries to be the modern C equivalent. A compiled systems language written in C++ using LLVM.
+              </p>
+            </div>
+            <span class="text-muted group-hover:text-accent transition-colors shrink-0 mt-0.5">↗</span>
+          </div>
+          <div class="mt-3 flex gap-2">
+            <span class="tag bg-bg text-muted border border-border px-2 py-0.5 rounded">C++</span>
+            <span class="tag bg-bg text-muted border border-border px-2 py-0.5 rounded">compiler</span>
+            <span class="tag bg-bg text-muted border border-border px-2 py-0.5 rounded">lang</span>
+          </div>
+        </a>
+
+        <a href="https://github.com/boxDev2008/StrawOS" target="_blank" class="group block bg-surface border border-border hover:border-accent/40 rounded-lg p-5 transition-all">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <h3 class="font-mono text-bright font-medium text-sm group-hover:text-accent transition-colors mb-1">StrawOS</h3>
+              <p class="text-text text-sm leading-relaxed">
+                A barebones x64 kernel booted with Limine. Custom libc, kernel modules, and bare-metal C — as low-level as it gets. It can also run Doom.
+              </p>
+            </div>
+            <span class="text-muted group-hover:text-accent transition-colors shrink-0 mt-0.5">↗</span>
+          </div>
+          <div class="mt-3 flex gap-2">
+            <span class="tag bg-bg text-muted border border-border px-2 py-0.5 rounded">C</span>
+            <span class="tag bg-bg text-muted border border-border px-2 py-0.5 rounded">kernel</span>
+            <span class="tag bg-bg text-muted border border-border px-2 py-0.5 rounded">x64</span>
+            <span class="tag bg-bg text-muted border border-border px-2 py-0.5 rounded">os</span>
+          </div>
+        </a>
+
+      </div>
+    </section>
+
+    <hr class="border-border" />
+
+    <!-- Writing -->
+    <section id="writing" class="py-14 fade-in delay-2">
+      <h2 class="font-mono text-xs text-muted tracking-widest uppercase mb-8">Writing</h2>
+      <div class="flex flex-col divide-y divide-border">
+
+        <a href="cpp-modern-rant.html" class="group py-4 flex items-baseline justify-between gap-4 hover:text-bright transition-colors">
+          <span class="text-text group-hover:text-bright text-sm leading-snug">F*ck Modern C (23+) and What to Use in the Future</span>
+          <span class="font-mono text-xs text-muted shrink-0">Mar 2026</span>
+        </a>
+        <a href="asserts.html" class="group py-4 flex items-baseline justify-between gap-4 hover:text-bright transition-colors">
+          <span class="text-text group-hover:text-bright text-sm leading-snug">Asserts are more than enough</span>
+          <span class="font-mono text-xs text-muted shrink-0">Feb 2026</span>
+        </a>
+        <a href="arena-allocators.html" class="group py-4 flex items-baseline justify-between gap-4 hover:text-bright transition-colors">
+          <span class="text-text group-hover:text-bright text-sm leading-snug">Arena allocators</span>
+          <span class="font-mono text-xs text-muted shrink-0">Jan 2026</span>
+        </a>
+        <a href="zero-to-triangle.html" class="group py-4 flex items-baseline justify-between gap-4 hover:text-bright transition-colors">
+          <span class="text-text group-hover:text-bright text-sm leading-snug">From zero to triangle (basics of graphics programming, using OpenGL as examples)</span>
+          <span class="font-mono text-xs text-muted shrink-0">Nov 2025</span>
+        </a>
+
+      </div>
+    </section>
+
+    <hr class="border-border" />
+
+    <!-- Contact -->
+    <section id="contact" class="py-14 fade-in delay-3">
+      <h2 class="font-mono text-xs text-muted tracking-widest uppercase mb-4">Contact</h2>
+      <p class="text-text leading-relaxed mb-4">
+        Still no actual methods of contact. Will add something soon.
+      </p>
+      <div class="flex gap-4 font-mono text-xs text-muted">
+        <a href="https://github.com/boxDev2008"  class="hover:text-accent transition-colors">github</a>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-border mt-4" style="position:relative;z-i

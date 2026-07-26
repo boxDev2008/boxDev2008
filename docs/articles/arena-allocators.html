@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Arena allocators — ~/boxDev2008</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            mono: ['JetBrains Mono', 'monospace'],
+            serif: ['Libre Baskerville', 'serif'],
+          },
+          colors: {
+            bg:      '#1c1c1e',
+            surface: '#242426',
+            border:  '#2e2e30',
+            muted:   '#6b6b72',
+            text:    '#d4d4d8',
+            bright:  '#f0f0f0',
+            accent:  '#c8a84b',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #1c1c1e; color: #d4d4d8; }
+    ::selection { background: #c8a84b33; }
+    a { transition: color .15s; }
+    pre { background: #242426; border: 1px solid #2e2e30; border-radius: 8px; padding: 1.25rem; overflow-x: auto; }
+    code { font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; }
+    p code { background: #242426; border: 1px solid #2e2e30; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.82rem; }
+    .prose p { margin-bottom: 1.25rem; line-height: 1.8; }
+    .prose h2 { font-family: 'Libre Baskerville', serif; font-size: 1.3rem; font-weight: 700; color: #f0f0f0; margin: 2.5rem 0 1rem; }
+    .prose h3 { font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; color: #c8a84b; margin: 2rem 0 0.75rem; }
+    .prose pre { margin: 1.5rem 0; }
+    .prose ul { list-style: disc; padding-left: 1.5rem; margin-bottom: 1.25rem; }
+    .prose ul li { margin-bottom: 0.5rem; line-height: 1.7; }
+    .fade-in { animation: fadeUp .5s ease both; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body class="font-serif antialiased min-h-screen">
+
+  <nav class="border-b border-border sticky top-0 z-50 backdrop-blur-sm bg-bg/90">
+    <div class="max-w-3xl mx-auto px-6 h-14 flex items-center justify-between">
+      <a href="index.html" class="font-mono text-accent font-medium tracking-tight text-sm hover:text-bright">~/boxDev2008</a>
+      <div class="flex gap-6 font-mono text-xs text-muted">
+        <a href="index.html#about"    class="hover:text-text">about</a>
+        <a href="index.html#projects" class="hover:text-text">projects</a>
+        <a href="index.html#writing"  class="hover:text-text">writing</a>
+        <a href="index.html#contact"  class="hover:text-text">contact</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-2xl mx-auto px-6 py-16 fade-in">
+
+    <a href="index.html#writing" class="font-mono text-xs text-muted hover:text-accent transition-colors">← back to writing</a>
+
+    <div class="mt-8 mb-12">
+      <p class="font-mono text-accent text-xs tracking-widest uppercase mb-3">Jan 2026</p>
+      <h1 class="font-serif text-3xl md:text-4xl text-bright font-bold leading-tight mb-4">Arena allocators</h1>
+      <p class="text-muted font-mono text-xs">~10 min read</p>
+    </div>
+
+    <article class="prose text-text">
+
+      <p>
+        The general-purpose heap allocator — <code>malloc</code>/<code>free</code> — is a marvel of engineering.
+        It handles allocations of arbitrary size and lifetime, threads safely, and minimizes fragmentation across
+        wildly unpredictable usage patterns. It is also, for a large class of programs, completely overkill.
+        If you know something about your allocation pattern, you can do much better. Arena allocators are
+        the simplest and most powerful expression of that idea.
+      </p>
+
+      <h2>The core idea</h2>
+
+      <p>
+        An arena (also called a linear allocator or bump allocator) is a block of memory with a single cursor.
+        Allocating means moving the cursor forward. Freeing means... nothing. You free the entire arena at once
+        when you're done with everything in it.
+      </p>
+
+      <pre><code>typedef struct {
+    uint8_t *base;
+    size_t   offset;
+    size_t   capacity;
+} Arena;
+
+Arena arena_create(size_t capacity) {
+    return (Arena){
+        .base     = malloc(capacity),
+        .offset   = 0,
+        .capacity = capacity,
+    };
+}
+
+void *arena_alloc(Arena *a, size_t size) {
+    // Align to 8 bytes
+    size = (size + 7) & ~7;
+    assert(a->offset + size &lt;= a->capacity);
+    void *ptr = a->base + a->offset;
+    a->offset += size;
+    return ptr;
+}
+
+void arena_reset(Arena *a) {
+    a->offset = 0;
+}
+
+void arena_destroy(Arena *a) {
+    free(a->base);
+}</code></pre>
+
+      <p>
+        That's the whole allocator. Thirty lines. <code>arena_alloc</code> is a pointer addition and a size
+        increment — it cannot be faster. And because you reset the whole arena at once, there's no tracking
+        of individual allocations, no free list, no fragmentation, no use-after-free bugs.
+      </p>
+
+      <h2>Why this is so fast</h2>
+
+      <p>
+        A <code>malloc</code> call needs to find a free block of the right size, update its internal bookkeeping,
+        potentially call into the OS for more memory, and handle thread synchronization. A bump allocation
+        is pointer arithmetic. The difference in hot paths is enormous — often 10–50x faster in benchmarks,
+        and that's before you account for cache effects.
+      </p>
+
+      <p>
+        Cache is the real win. When you allocate a bunch of objects from an arena in sequence, they all live
+        next to each other in memory. When you iterate over them, you're walking contiguous bytes. The prefetcher
+        loves this. Compare to a list of separately <code>malloc</code>'d objects scattered across the heap,
+        and you can see why arena-allocated data structures can be dramatically faster even independent of
+        the allocation cost itself.
+      </p>
+
+      <h2>The lifetime model</h2>
+
+      <p>
+        Arenas make lifetime management explicit and simple. Instead of tracking which individual objects are
+        alive, you track which <em>phase of work</em> is alive. This maps cleanly onto how most programs
+        actually behave:
+      </p>
+
+      <ul>
+        <li>Parse a file → allocate into arena → process the result → reset the arena.</li>
+        <li>Handle a web request → arena for the duration of the request → reset on response.</li>
+        <li>Run a game frame → frame arena for scratch allocations → reset at the end of the frame.</li>
+      </ul>
+
+      <p>
+        In each case, <em>everything allocated together can be freed together.</em> This is the pattern.
+        If your problem fits it, an arena will simplify your code and speed it up simultaneously.
+      </p>
+
+      <h2>Scratch arenas</h2>
+
+      <p>
+        A particularly useful pattern is the scratch arena — a temporary arena for short-lived intermediate
+        allocations inside a function. You allocate a chunk, do some work, and reset when done. Because reset
+        is O(1), you can do this thousands of times per second without concern.
+      </p>
+
+      <pre><code>// Permanent arena lives for the whole program.
+// Scratch arena is reset frequently for temp work.
+
+char *build_path(Arena *scratch, const char *dir, const char *file) {
+    size_t saved = scratch->offset;
+
+    size_t len = strlen(dir) + strlen(file) + 2;
+    char *buf = arena_alloc(scratch, len);
+    snprintf(buf, len, "%s/%s", dir, file);
+
+    // Caller resets the scratch arena when done
+    return buf;
+}</code></pre>
+
+      <p>
+        You can make this even cleaner by saving and restoring the arena offset in a scoped fashion, giving
+        you something close to stack semantics with heap memory.
+      </p>
+
+      <h2>When arenas don't fit</h2>
+
+      <p>
+        Arenas aren't for everything. They break down when you need objects with individually varying lifetimes —
+        when some things in the arena need to outlive others. They also don't help if you have a graph or
+        tree structure where you need to delete nodes mid-traversal.
+      </p>
+
+      <p>
+        For those cases you can combine strategies: use an arena for the bulk of allocations with the same
+        lifetime, and use a pool allocator or the general heap for things with irregular lifetimes. Most programs
+        have a majority of allocations that fall into predictable lifetime groups — those are the ones to arena.
+      </p>
+
+      <h2>In practice</h2>
+
+      <p>
+        Once you start using arenas you start seeing them everywhere. The compiler toolchain world has used
+        them forever — clang, LLVM, GCC all have their own arena-style allocators because parsing and IR
+        construction create enormous numbers of short-lived nodes with exactly this structure. Game engines
+        have used per-frame arenas as a matter of course for decades.
+      </p>
+
+      <p>
+        The general-purpose allocator is the right tool when you don't know your allocation pattern. When you
+        do — and surprisingly often, you do — an arena will outperform it in every metric that matters:
+        speed, memory overhead, and code simplicity.
+      </p>
+
+    </article>
+
+  </main>
+
+  <footer class="border-t border-border mt-8">
+    <div class="max-w-3xl mx-auto px-6 py-6 font-mono text-xs text-muted flex justify-between">
+      <span>~/boxDev2008</span>
+      <span>built with spite and tailwind</span>
+    </div>
+  </footer>
+
+</body>
+</html>

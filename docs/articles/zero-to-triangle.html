@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>From zero to triangle — ~/boxDev2008</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-c.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-glsl.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            mono: ['JetBrains Mono', 'monospace'],
+            serif: ['Libre Baskerville', 'serif'],
+          },
+          colors: {
+            bg:      '#1c1c1e',
+            surface: '#242426',
+            border:  '#2e2e30',
+            muted:   '#6b6b72',
+            text:    '#d4d4d8',
+            bright:  '#f0f0f0',
+            accent:  '#c8a84b',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #1c1c1e; color: #d4d4d8; }
+    ::selection { background: #c8a84b33; }
+    a { transition: color .15s; }
+    code[class*="language-"], pre[class*="language-"] {
+      font-family: 'JetBrains Mono', monospace !important;
+      font-size: 0.81rem; line-height: 1.65;
+    }
+    pre[class*="language-"] {
+      background: #161618 !important;
+      border: 1px solid #2e2e30;
+      border-radius: 8px;
+      padding: 1.4rem 1.5rem;
+      margin: 1.75rem 0;
+      overflow-x: auto;
+    }
+    :not(pre) > code {
+      background: #242426; border: 1px solid #2e2e30;
+      padding: 0.15rem 0.45rem; border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; color: #d4d4d8;
+    }
+    .token.comment, .token.prolog, .token.cdata { color: #525259 !important; font-style: italic; }
+    .token.keyword { color: #c8a84b !important; }
+    .token.function { color: #7eb8d4 !important; }
+    .token.string, .token.char { color: #87c087 !important; }
+    .token.number { color: #d4956a !important; }
+    .token.operator { color: #d4d4d8 !important; }
+    .token.punctuation { color: #888 !important; }
+    .token.class-name, .token.type-definition { color: #d4c87a !important; }
+    .token.macro.directive { color: #c8a84b !important; }
+    .token.boolean, .token.constant { color: #d4956a !important; }
+    .token.builtin { color: #b48aad !important; }
+    .prose p { margin-bottom: 1.3rem; line-height: 1.85; }
+    .prose h2 {
+      font-family: 'Libre Baskerville', serif; font-size: 1.45rem; font-weight: 700;
+      color: #f0f0f0; margin: 3rem 0 1.1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #2e2e30;
+    }
+    .prose h3 {
+      font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: #c8a84b;
+      letter-spacing: 0.05em; margin: 2.2rem 0 0.8rem; text-transform: uppercase;
+    }
+    .prose ul { list-style: none; padding-left: 0; margin-bottom: 1.3rem; }
+    .prose ul li { padding-left: 1.4rem; margin-bottom: 0.6rem; line-height: 1.75; position: relative; }
+    .prose ul li::before { content: '→'; position: absolute; left: 0; color: #c8a84b; font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; top: 0.28em; }
+    .prose ol { list-style: decimal; padding-left: 1.5rem; margin-bottom: 1.3rem; }
+    .prose ol li { margin-bottom: 0.6rem; line-height: 1.75; }
+    .diagram {
+      background: #161618; border: 1px solid #2e2e30; border-radius: 8px;
+      padding: 1.4rem 1.5rem; font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem; color: #5a5a62; margin: 1.75rem 0; overflow-x: auto; line-height: 1.7;
+    }
+    .hl  { color: #c8a84b; }
+    .dw  { color: #d4d4d8; }
+    .grn { color: #87c087; }
+    .blu { color: #7eb8d4; }
+    .red { color: #d46a6a; }
+    .pur { color: #b48aad; }
+    .callout {
+      background: #1d1d1f; border-left: 3px solid #c8a84b;
+      padding: 1.1rem 1.4rem; margin: 1.75rem 0; border-radius: 0 6px 6px 0;
+      font-size: 0.91rem; line-height: 1.78;
+    }
+    .callout-title {
+      font-family: 'JetBrains Mono', monospace; font-size: 0.68rem; color: #c8a84b;
+      text-transform: uppercase; letter-spacing: 0.12em; display: block; margin-bottom: 0.45rem;
+    }
+    .callout.info { border-left-color: #7eb8d4; }
+    .callout.info .callout-title { color: #7eb8d4; }
+    .callout.warn { border-left-color: #d46a6a; }
+    .callout.warn .callout-title { color: #d46a6a; }
+    .callout.grn-border { border-left-color: #87c087; }
+    .callout.grn-border .callout-title { color: #87c087; }
+    .key-term { color: #f0f0f0; font-weight: 700; }
+    #reading-bar { position: fixed; top: 0; left: 0; height: 2px; background: #c8a84b; z-index: 200; transition: width 0.08s linear; }
+    .fade-in { animation: fadeUp .5s ease both; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+    .toc a { color: #6b6b72; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; text-decoration: none; }
+    .toc a:hover { color: #c8a84b; }
+    .toc li { margin-bottom: 0.38rem; list-style: none !important; padding-left: 0 !important; }
+    .toc li::before { display: none !important; }
+    /* pipeline step boxes */
+    .pipe-step {
+      background: #1d1d1f; border: 1px solid #2e2e30; border-radius: 6px;
+      padding: 0.9rem 1.1rem; margin-bottom: 0.6rem;
+    }
+    .pipe-step-name { font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: #c8a84b; font-weight: 500; margin-bottom: 0.3rem; }
+    .pipe-step-desc { font-size: 0.88rem; line-height: 1.65; color: #d4d4d8; }
+    .pipe-step.fixed { border-color: #3a3a3f; }
+    .pipe-step.fixed .pipe-step-name { color: #6b6b72; }
+  </style>
+</head>
+<body class="font-serif antialiased min-h-screen">
+  <div id="reading-bar" style="width:0%"></div>
+
+  <nav class="border-b border-border sticky top-0 z-50 backdrop-blur-sm bg-bg/90">
+    <div class="max-w-3xl mx-auto px-6 h-14 flex items-center justify-between">
+      <a href="index.html" class="font-mono text-accent font-medium tracking-tight text-sm hover:text-bright">~/boxDev2008</a>
+      <div class="flex gap-6 font-mono text-xs text-muted">
+        <a href="index.html#about" class="hover:text-text">about</a>
+        <a href="index.html#projects" class="hover:text-text">projects</a>
+        <a href="index.html#writing" class="hover:text-text">writing</a>
+        <a href="index.html#contact" class="hover:text-text">contact</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-2xl mx-auto px-6 py-16 fade-in">
+    <a href="index.html#writing" class="font-mono text-xs text-muted hover:text-accent transition-colors">← back to writing</a>
+    <div class="mt-8 mb-10">
+      <p class="font-mono text-accent text-xs tracking-widest uppercase mb-3">Nov 2025</p>
+      <h1 class="font-serif text-3xl md:text-4xl text-bright font-bold leading-tight mb-3">From zero to triangle</h1>
+      <p class="font-serif text-xl text-muted italic mb-5">basics of graphics programming, using OpenGL as examples</p>
+      <p class="text-text leading-relaxed text-base">
+        Everyone who gets into graphics programming has a moment where they spend three hours writing a hundred
+        lines of boilerplate just to see a flat orange triangle on a black background — and thinks: <em>is this
+        worth it?</em> It absolutely is. That triangle means you've understood the full pipeline end-to-end:
+        window creation, GPU memory management, shader programs, and draw calls. Everything else — textures,
+        3D transforms, lighting, shadows, post-processing — is just elaboration on the same foundation.
+      </p>
+      <p class="text-text leading-relaxed text-base mt-3">
+        This post walks through that whole pipeline from scratch, explaining <em>why</em> each piece exists, not
+        just how to copy-paste it. I'm using OpenGL 3.3 Core Profile as the concrete example because it runs
+        everywhere and exposes the concepts clearly. Once you understand OpenGL's model, Vulkan and Metal will
+        make much more sense.
+      </p>
+      <div class="mt-5 flex gap-4 font-mono text-xs text-muted">
+        <span>~25 min read</span><span>·</span><span>beginner-friendly</span><span>·</span><span>OpenGL / GLSL / C</span>
+      </div>
+    </div>
+
+    <div class="bg-surface border border-border rounded-lg p-5 mb-12">
+      <p class="font-mono text-xs text-muted uppercase tracking-widest mb-4">Table of contents</p>
+      <ol class="toc space-y-1 pl-0">
+        <li><a href="#what-is-gpu">1. What is a GPU, actually?</a></li>
+        <li><a href="#pipeline">2. The rendering pipeline</a></li>
+        <li><a href="#ndc">3. Coordinate systems and NDC</a></li>
+        <li><a href="#setup">4. Setting up: window + OpenGL context</a></li>
+        <li><a href="#vbo-vao">5. Getting geometry onto the GPU (VBO + VAO)</a></li>
+        <li><a href="#shaders">6. Writing your first shaders (GLSL)</a></li>
+        <li><a href="#compile-link">7. Compiling and linking shaders</a></li>
+        <li><a href="#render-loop">8. The render loop</a></li>
+        <li><a href="#full-program">9. Putting it all together</a></li>
+        <li><a href="#errors">10. Debugging OpenGL errors</a></li>
+        <li><a href="#next">11. What comes next</a></li>
+      </ol>
+    </div>
+
+    <article class="prose text-text">
+
+      <h2 id="what-is-gpu">What is a GPU, actually?</h2>
+      <p>Before writing any code, it helps to have a mental model of the hardware we're programming. A GPU is fundamentally different from a CPU:</p>
+      <ul>
+        <li>A CPU has a few very powerful cores (4–32), each optimised for executing complex sequential logic quickly, with large out-of-order execution windows and branch predictors.</li>
+        <li>A GPU has thousands of much simpler cores (a modern GPU has 5,000–20,000 "shader processors"), each optimised for doing simple math on independent data in parallel.</li>
+      </ul>
+      <p>This makes GPUs ideal for graphics: shading a triangle means running the same program on potentially millions of pixels simultaneously, with no dependencies between them. A CPU would process them one-by-one; a GPU does them all at once.</p>
+      <p>The GPU also has its own dedicated memory — <span class="key-term">VRAM (Video RAM)</span>. It's separate from your system RAM. When you upload geometry or textures, you're copying data from system RAM across the PCIe bus into VRAM. The GPU can read VRAM very quickly, but transferring between CPU and GPU memory is expensive — so you want to minimise those transfers in your render loop.</p>
+      <div class="callout info">
+        <span class="callout-title">important mental model</span>
+        Think of the GPU as a separate computer sitting next to yours. It has its own memory and its own processor. You communicate with it by sending commands through a driver. The commands say things like "here is some data, store it in your memory" and "run this program on all these data points". The driver queues these commands and the GPU executes them asynchronously.
+      </div>
+
+      <h2 id="pipeline">The rendering pipeline</h2>
+      <p>To draw anything on screen, your data passes through a fixed sequence of stages called the <span class="key-term">rendering pipeline</span>. Some stages are <em>programmable</em> — you write code that runs on the GPU (called <em>shaders</em>). Others are <em>fixed-function</em> — the hardware does them automatically, you just configure them.</p>
+      <p>Here's the pipeline for drawing a triangle:</p>
+      <div class="diagram"><span class="hl">The OpenGL rendering pipeline (simplified):</span>
+
+  CPU side                        GPU side
+  ─────────────────────────────────────────────────────────────────────
+
+  Your vertex data                                           Framebuffer
+  (array of floats)                                         (the screen)
+       │                                                         ▲
+       │  glBufferData()                                         │
+       ▼                                                         │
+  ┌─────────┐                                           ┌──────────────┐
+  │  VRAM   │──►  [ <span class="hl">Vertex Shader</span>  ]                │ <span class="blu">Output Merger</span>│
+  │ (VBO)   │        (per vertex)                       │ (blending,   │
+  └─────────┘             │                             │  depth test) │
+                          │  clip-space positions       └──────────────┘
+                          ▼                                     ▲
+                  [ <span class="dw">Primitive Assembly</span> ]              ┌──────────────┐
+                  (group verts into triangles)        │ <span class="hl">Frag Shader</span>  │
+                          │                           │ (per pixel)  │
+                          ▼                           └──────────────┘
+                  [ <span class="dw">Clipping</span> ]                            ▲
+                  (discard outside view)                     │
+                          │                                   │
+                          ▼                                   │
+                  [ <span class="dw">Rasterization</span> ]─────────────────────────┘
+                  (triangle → pixels)
+                  (fixed function — hardware does this)
+
+  <span class="hl">= programmable stage (you write GLSL code)</span>
+  <span class="dw">= fixed-function stage (hardware-controlled)</span></div>
+
+      <p>Let's go through the key stages:</p>
+
+      <div class="pipe-step">
+        <div class="pipe-step-name">① Vertex Shader  [programmable]</div>
+        <div class="pipe-step-desc">Runs once for every vertex you submit. Takes your raw vertex data (positions, normals, texture coordinates, etc.) and outputs a position in <em>clip space</em> — a coordinate system the GPU uses internally before projecting onto the screen. This is where you apply 3D transformations.</div>
+      </div>
+      <div class="pipe-step fixed">
+        <div class="pipe-step-name">② Primitive Assembly + Clipping  [fixed]</div>
+        <div class="pipe-step-desc">The GPU groups vertices into triangles (based on how you called glDrawArrays), then clips triangles that extend outside the view frustum. Triangles get split at frustum boundaries. Fully off-screen triangles are discarded.</div>
+      </div>
+      <div class="pipe-step fixed">
+        <div class="pipe-step-name">③ Rasterization  [fixed]</div>
+        <div class="pipe-step-desc">Converts each triangle into a set of <em>fragments</em> (candidate pixels). For every pixel the triangle covers on screen, one fragment is generated. The GPU also interpolates values (like color, UV coordinates) across the triangle face — if one vertex is red and the opposite is blue, pixels in the middle get a blend of both.</div>
+      </div>
+      <div class="pipe-step">
+        <div class="pipe-step-name">④ Fragment Shader  [programmable]</div>
+        <div class="pipe-step-desc">Runs once for every fragment (pixel) rasterized. Outputs a final color for that pixel. This is where you sample textures, compute lighting, apply effects. Fragment shaders are often the performance bottleneck for complex scenes.</div>
+      </div>
+      <div class="pipe-step fixed">
+        <div class="pipe-step-name">⑤ Output Merger  [fixed, partially configurable]</div>
+        <div class="pipe-step-desc">Takes the fragment shader output and combines it with what's already in the framebuffer. Runs the depth test (is this fragment closer than what's already there?), stencil test, and alpha blending. What survives goes into the framebuffer and eventually appears on screen.</div>
+      </div>
+
+      <h2 id="ndc">Coordinate systems and NDC</h2>
+      <p>This trips up almost everyone. OpenGL uses several coordinate systems, and understanding how they chain together is fundamental to 3D rendering.</p>
+      <p>The one you need to know to render a triangle is <span class="key-term">NDC — Normalized Device Coordinates</span>. After the vertex shader runs, the GPU expects vertex positions to be in NDC space: a cube from -1 to +1 on all axes. Anything outside that cube is off-screen and clipped.</p>
+      <div class="diagram"><span class="hl">NDC (Normalized Device Coordinates):</span>
+
+           +Y
+            │
+      (-1,1)│          (1,1)
+            ├──────────────┐
+            │              │
+            │    screen    │
+  ──────────┼──────────────┼─────── +X
+            │              │
+            └──────────────┤
+      (-1,-1)           (1,-1)
+            │
+
+  Origin (0, 0) = center of screen
+  (-1, -1) = bottom-left corner
+  ( 1,  1) = top-right corner
+  Z: -1 = near plane, +1 = far plane
+
+  If your vertex shader outputs a position outside this cube,
+  that vertex (and potentially the whole triangle) gets clipped.</div>
+      <p>For our first triangle, we'll place vertices directly in NDC so the vertex shader can be a simple passthrough. In a real 3D program, you'd transform from "world space" (where your scene objects live) through "view space" (relative to the camera) and then through a projection matrix into clip space. But NDC first, math later.</p>
+
+      <h2 id="setup">Setting up: window + OpenGL context</h2>
+      <p>Before calling any OpenGL function, you need two things: a <span class="key-term">window</span> to render into, and an <span class="key-term">OpenGL context</span> — the object that represents your connection to the GPU driver.</p>
+      <p>Creating a window is platform-specific (Win32 on Windows, X11/Wayland on Linux, Cocoa on macOS). Doing it manually for each platform is painful. <span class="key-term">GLFW</span> is a small library that handles all of this portably.</p>
+      <p>Then there's a second problem: OpenGL function pointers aren't linked at compile time — they're loaded at runtime from the driver. Doing this manually for the 300+ functions in OpenGL 3.3 would be absurd. <span class="key-term">GLAD</span> is a loader generator that handles this.</p>
+      <pre><code class="language-c">/* Dependencies you need:
+   - GLFW: window + context creation (https://www.glfw.org)
+   - GLAD: OpenGL function loader (https://glad.dav1d.de)
+     Generate for: OpenGL 3.3, Core profile, C/C++ language
+
+   Compile: gcc main.c glad.c -lglfw -lGL -lm -o triangle
+   (On macOS: -framework OpenGL instead of -lGL)
+*/
+
+#include "glad/glad.h"   // must be included BEFORE glfw
+#include <GLFW/glfw3.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+/* Called automatically when the window is resized */
+void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
+    /* Tell OpenGL the new rendering region size */
+    glViewport(0, 0, width, height);
+}
+
+int main(void) {
+    /* ── 1. Initialise GLFW ── */
+    if (!glfwInit()) {
+        fprintf(stderr, "Failed to initialise GLFW\n");
+        return -1;
+    }
+
+    /* Tell GLFW which OpenGL version to use and request Core Profile.
+       Core Profile removes all the deprecated "legacy" OpenGL stuff — 
+       forces you to do things the modern way. */
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+    /* macOS needs this extra hint — Apple's OpenGL support is frozen at 4.1
+       but uses a forward-compat context to expose it. */
+#ifdef __APPLE__
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#endif
+
+    /* ── 2. Create window + context ── */
+    GLFWwindow *window = glfwCreateWindow(800, 600, "Hello Triangle", NULL, NULL);
+    if (!window) {
+        fprintf(stderr, "Failed to create GLFW window\n");
+        glfwTerminate();
+        return -1;
+    }
+    /* Make this window's GL context the current one on this thread.
+       All subsequent OpenGL calls operate on this context. */
+    glfwMakeContextCurrent(window);
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+
+    /* ── 3. Load OpenGL function pointers via GLAD ── */
+    /* glfwGetProcAddress is GLFW's platform-specific function pointer
+       loader — GLAD calls it for every function it needs to load. */
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+        fprintf(stderr, "Failed to initialise GLAD\n");
+        return -1;
+    }
+
+    /* From this point, all gl*() functions are available.
+       We can check what we got: */
+    printf("OpenGL version: %s\n", glGetString(GL_VERSION));
+    printf("GPU: %s\n",            glGetString(GL_RENDERER));
+
+    // ... (shader setup, VBO/VAO, render loop) ...
+
+    glfwDestroyWindow(window);
+    glfwTerminate();
+    return 0;
+}</code></pre>
+      <div class="callout">
+        <span class="callout-title">core profile vs compatibility profile</span>
+        OpenGL Core Profile removes all the old pre-shader "immediate mode" API (glBegin/glEnd, glVertex3f, etc.). It forces you to use shaders and buffer objects — the modern, GPU-friendly approach. Always use Core Profile for new code. Compatibility Profile keeps the old stuff around for legacy code, but it's a mess and some drivers implement it poorly.
+      </div>
+
+      <h2 id="vbo-vao">Getting geometry onto the GPU (VBO + VAO)</h2>
+      <p>Your triangle's vertices start as a float array in system RAM. The GPU can't see your process's memory — you have to explicitly upload the data to VRAM and tell the GPU how to interpret it. OpenGL uses two objects for this:</p>
+      <ul>
+        <li><span class="key-term">VBO (Vertex Buffer Object)</span> — a chunk of GPU memory that stores raw vertex data. Think of it as <code>malloc</code> on the GPU side.</li>
+        <li><span class="key-term">VAO (Vertex Array Object)</span> — remembers how your VBO data is structured (where each attribute starts, how many floats per vertex, etc). Think of it as a "format descriptor" or "schema" for a VBO.</li>
+      </ul>
+      <p>The split exists for a good reason: you might have multiple VBOs with the same layout, or you might want to switch between different data layouts efficiently. The VAO captures all the state so you can bind it once and the GPU knows exactly how to read the data.</p>
+      <pre><code class="language-c">/* Our triangle: 3 vertices, each with an XYZ position (3 floats = 12 bytes) */
+float vertices[] = {
+    /* x      y     z  */
+    -0.5f, -0.5f,  0.0f,    /* bottom-left  */
+     0.5f, -0.5f,  0.0f,    /* bottom-right */
+     0.0f,  0.5f,  0.0f,    /* top-center   */
+};
+
+GLuint vao, vbo;
+
+/* ── 1. Create and bind the VAO first ──
+   Everything we configure below gets recorded into this VAO. */
+glGenVertexArrays(1, &vao);
+glBindVertexArray(vao);
+
+/* ── 2. Create a VBO and upload data ── */
+glGenBuffers(1, &vbo);
+glBindBuffer(GL_ARRAY_BUFFER, vbo);    /* bind to GL_ARRAY_BUFFER slot */
+
+glBufferData(
+    GL_ARRAY_BUFFER,        /* target: the slot we just bound to */
+    sizeof(vertices),       /* size in bytes: 9 floats × 4 bytes = 36 */
+    vertices,               /* the actual data to upload */
+    GL_STATIC_DRAW          /* usage hint: data won't change after upload.
+                               GL_DYNAMIC_DRAW = updated frequently.
+                               GL_STREAM_DRAW  = updated every frame.
+                               These are hints to the driver about where
+                               to store the buffer (fast VRAM vs slower). */
+);
+
+/* ── 3. Tell the GPU how to interpret the buffer data ──
+   This is the crucial step that often confuses beginners.
+   We're describing the memory layout of ONE vertex to the GPU. */
+glVertexAttribPointer(
+    0,               /* attribute index: this is "attribute 0".
+                        In the vertex shader we'll write: layout(location=0) */
+    3,               /* number of components: 3 floats per vertex (X, Y, Z) */
+    GL_FLOAT,        /* data type of each component */
+    GL_FALSE,        /* normalise? (only relevant for integer types) */
+    3 * sizeof(float), /* stride: how many bytes between the START of one
+                          vertex and the start of the next. Here: 12 bytes.
+                          If we had position + color: 6 floats = 24 bytes stride. */
+    (void*)0         /* offset: how many bytes from the start of the buffer
+                        where this attribute's data begins. 0 = right at the start.
+                        If color came after position: (void*)(3 * sizeof(float)) */
+);
+
+/* Enable attribute index 0 (disabled by default) */
+glEnableVertexAttribArray(0);
+
+/* Unbind the VAO — good practice to avoid accidentally modifying it later */
+glBindVertexArray(0);</code></pre>
+      <div class="callout info">
+        <span class="callout-title">understanding stride and offset</span>
+        Imagine your vertex data is a struct: <code>{ float x, y, z; float r, g, b; }</code> — 24 bytes total. Position starts at byte 0, color starts at byte 12. You'd call <code>glVertexAttribPointer</code> twice: once for position (offset 0, stride 24) and once for color (offset 12, stride 24). The stride tells the GPU how to jump from one vertex to the next; the offset tells it where within each vertex to find this particular attribute.
+      </div>
+
+      <h2 id="shaders">Writing your first shaders (GLSL)</h2>
+      <p>Shaders are programs written in <span class="key-term">GLSL (OpenGL Shading Language)</span> — a C-like language that compiles and runs on the GPU. You provide them as source code strings at runtime; the driver compiles them when you call the appropriate OpenGL functions.</p>
+      <p>For our triangle we need exactly two shaders:</p>
+
+      <h3>// vertex shader</h3>
+      <pre><code class="language-glsl">/* vertex shader source — stored as a string in your C code */
+#version 330 core
+/* ↑ GLSL version 330 corresponds to OpenGL 3.3.
+   "core" means we're using Core Profile features only. */
+
+/* Declare an input attribute at location 0.
+   This matches the '0' we passed to glVertexAttribPointer.
+   The GPU will feed each vertex's XYZ data into 'aPos'. */
+layout (location = 0) in vec3 aPos;
+
+void main() {
+    /* gl_Position is a built-in output — the GPU reads it after
+       the vertex shader to know where to place this vertex on screen.
+       It expects a vec4 (homogeneous coordinates: x, y, z, w).
+       For now, w=1.0 means "no perspective division" — our triangle
+       stays exactly where we placed it in NDC. */
+    gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
+
+    /* Equivalently: gl_Position = vec4(aPos, 1.0);
+       vec3 can be swizzled into vec4 this way. */
+}</code></pre>
+      <p>This vertex shader does almost nothing — it passes the vertex position straight through. In a real program, you'd multiply by a model-view-projection matrix here to handle 3D transforms and camera perspective. But for NDC coordinates, passthrough is exactly right.</p>
+
+      <h3>// fragment shader</h3>
+      <pre><code class="language-glsl">/* fragment shader source */
+#version 330 core
+
+/* Declare an output variable — this is the color the shader writes.
+   'FragColor' is a name we choose; OpenGL routes location 0's output
+   to the default framebuffer (the screen). */
+out vec4 FragColor;
+
+void main() {
+    /* vec4(R, G, B, A) — all values 0.0 to 1.0.
+       This gives every pixel of our triangle a solid orange color. */
+    FragColor = vec4(1.0f, 0.5f, 0.1f, 1.0f);
+
+    /* Try changing these values to see different colors:
+       vec4(1.0, 0.0, 0.0, 1.0) = red
+       vec4(0.0, 1.0, 0.0, 1.0) = green
+       vec4(0.2, 0.6, 1.0, 1.0) = sky blue */
+}</code></pre>
+      <div class="callout">
+        <span class="callout-title">GLSL data types</span>
+        GLSL has built-in vector types: <code>vec2</code>, <code>vec3</code>, <code>vec4</code> for floats; <code>ivec2/3/4</code> for ints; <code>bvec2/3/4</code> for bools. There are also matrix types: <code>mat2</code>, <code>mat3</code>, <code>mat4</code>. You can swizzle components with <code>.x .y .z .w</code> or <code>.r .g .b .a</code> (they're identical) and even chain them: <code>v.xyz</code> extracts a <code>vec3</code>, <code>v.zyx</code> reverses the order.
+      </div>
+
+      <h2 id="compile-link">Compiling and linking shaders</h2>
+      <p>Shaders need to be compiled at runtime by the GPU driver. The process mirrors traditional compilation: compile each shader individually, then link them into a <span class="key-term">shader program</span> that the GPU executes.</p>
+      <pre><code class="language-c">/* Helper: compile a single shader and return its ID.
+   Prints the error log if compilation fails.
+   type: GL_VERTEX_SHADER or GL_FRAGMENT_SHADER */
+GLuint compile_shader(GLenum type, const char *source) {
+    GLuint shader = glCreateShader(type);
+    glShaderSource(
+        shader,
+        1,          /* number of source strings */
+        &source,    /* array of source string pointers */
+        NULL        /* array of string lengths (NULL = null-terminated) */
+    );
+    glCompileShader(shader);
+
+    /* Check for compilation errors */
+    GLint success;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        char log[1024];
+        glGetShaderInfoLog(shader, sizeof(log), NULL, log);
+        fprintf(stderr, "Shader compile error (%s):\n%s\n",
+                type == GL_VERTEX_SHADER ? "vertex" : "fragment", log);
+        glDeleteShader(shader);
+        return 0;  /* 0 is not a valid shader ID */
+    }
+    return shader;
+}
+
+/* Helper: link a vertex and fragment shader into a complete program */
+GLuint create_shader_program(const char *vert_src, const char *frag_src) {
+    GLuint vert = compile_shader(GL_VERTEX_SHADER,   vert_src);
+    GLuint frag = compile_shader(GL_FRAGMENT_SHADER, frag_src);
+
+    if (!vert || !frag) return 0;
+
+    GLuint program = glCreateProgram();
+    glAttachShader(program, vert);
+    glAttachShader(program, frag);
+    glLinkProgram(program);
+
+    /* Check for link errors */
+    GLint success;
+    glGetProgramiv(program, GL_LINK_STATUS, &success);
+    if (!success) {
+        char log[1024];
+        glGetProgramInfoLog(program, sizeof(log), NULL, log);
+        fprintf(stderr, "Shader link error:\n%s\n", log);
+        glDeleteProgram(program);
+        return 0;
+    }
+
+    /* Individual shaders are no longer needed once linked into a program.
+       The program holds its own compiled copy. */
+    glDeleteShader(vert);
+    glDeleteShader(frag);
+
+    return program;
+}</code></pre>
+      <div class="callout warn">
+        <span class="callout-title">always check shader errors</span>
+        A shader that fails to compile silently returns garbage in OpenGL — you won't get a crash, you'll just get nothing rendered, or a weird solid color, or flickering. Always check <code>GL_COMPILE_STATUS</code> and print the info log. The error messages are actually quite good — they'll tell you the exact line number and a description of the problem, much like a C compiler would.
+      </div>
+
+      <h2 id="render-loop">The render loop</h2>
+      <p>With the setup done, the actual rendering is a tight loop: clear the screen, bind the shader program, bind the geometry, draw it, swap the buffers, repeat until the window closes.</p>
+      <pre><code class="language-c">while (!glfwWindowShouldClose(window)) {
+    /* ── 1. Process window events (keyboard, mouse, resize, close) ──
+       Must be called every frame or the OS thinks the program is frozen. */
+    glfwPollEvents();
+
+    /* Handle Escape key to close */
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, 1);
+
+    /* ── 2. Clear the framebuffer ──
+       glClearColor sets the color to clear to (R, G, B, A).
+       glClear actually performs the clear on the specified buffers. */
+    glClearColor(0.08f, 0.08f, 0.10f, 1.0f);   /* near-black background */
+    glClear(GL_COLOR_BUFFER_BIT);
+    /* In 3D rendering you'd also clear: GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT */
+
+    /* ── 3. Set the active shader program ──
+       All subsequent draw calls use this program until you call glUseProgram again. */
+    glUseProgram(shader_program);
+
+    /* ── 4. Bind the VAO ──
+       This restores all the vertex format state we set up earlier.
+       The GPU now knows where the vertex data is and how to read it. */
+    glBindVertexArray(vao);
+
+    /* ── 5. Draw ──
+       glDrawArrays: draw primitives from currently bound VAO.
+         GL_TRIANGLES: every 3 vertices form one triangle
+         0:            start from vertex index 0
+         3:            draw 3 vertices total (= 1 triangle)
+    */
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+
+    /* ── 6. Swap buffers ──
+       We've been drawing into the BACK buffer.
+       Swap makes the back buffer visible (front buffer) and
+       gives us a fresh back buffer to draw the next frame into.
+       This is double buffering — prevents screen tearing. */
+    glfwSwapBuffers(window);
+}</code></pre>
+      <div class="callout info">
+        <span class="callout-title">double buffering</span>
+        The screen is updated at a fixed rate (60Hz, 144Hz, etc.). If you drew directly to the buffer being displayed, you'd see partially-drawn frames — the screen would show part of the old frame and part of the new one simultaneously, causing a visible tear. Double buffering solves this: you draw into a hidden back buffer, then swap it atomically when it's complete. The displayed frame is always complete and consistent.
+      </div>
+
+      <h2 id="full-program">Putting it all together</h2>
+      <p>Here's the complete program — everything from above assembled into one file you can actually compile and run:</p>
+      <pre><code class="language-c">#include "glad/glad.h"
+#include &lt;GLFW/glfw3.h&gt;
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+
+/* ── Shader source strings ── */
+const char *vert_src =
+    "#version 330 core\n"
+    "layout (location = 0) in vec3 aPos;\n"
+    "void main() {\n"
+    "    gl_Position = vec4(aPos, 1.0);\n"
+    "}\n";
+
+const char *frag_src =
+    "#version 330 core\n"
+    "out vec4 FragColor;\n"
+    "void main() {\n"
+    "    FragColor = vec4(1.0f, 0.5f, 0.1f, 1.0f);\n"
+    "}\n";
+
+/* ── Triangle geometry ── */
+float vertices[] = {
+    -0.5f, -0.5f,  0.0f,
+     0.5f, -0.5f,  0.0f,
+     0.0f,  0.5f,  0.0f,
+};
+
+void framebuffer_size_callback(GLFWwindow *w, int width, int height) {
+    glViewport(0, 0, width, height);
+}
+
+GLuint compile_shader(GLenum type, const char *src) {
+    GLuint s = glCreateShader(type);
+    glShaderSource(s, 1, &src, NULL);
+    glCompileShader(s);
+    GLint ok; glGetShaderiv(s, GL_COMPILE_STATUS, &ok);
+    if (!ok) {
+        char log[512]; glGetShaderInfoLog(s, 512, NULL, log);
+        fprintf(stderr, "Shader error: %s\n", log);
+    }
+    return s;
+}
+
+int main(void) {
+    glfwInit();
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+#ifdef __APPLE__
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#endif
+
+    GLFWwindow *window = glfwCreateWindow(800, 600, "Triangle", NULL, NULL);
+    glfwMakeContextCurrent(window);
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
+
+    /* Compile and link shader program */
+    GLuint vert = compile_shader(GL_VERTEX_SHADER,   vert_src);
+    GLuint frag = compile_shader(GL_FRAGMENT_SHADER, frag_src);
+    GLuint program = glCreateProgram();
+    glAttachShader(program, vert);
+    glAttachShader(program, frag);
+    glLinkProgram(program);
+    glDeleteShader(vert);
+    glDeleteShader(frag);
+
+    /* Upload geometry to GPU */
+    GLuint vao, vbo;
+    glGenVertexArrays(1, &vao);
+    glGenBuffers(1, &vbo);
+    glBindVertexArray(vao);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glBindVertexArray(0);
+
+    /* Render loop */
+    while (!glfwWindowShouldClose(window)) {
+        glfwPollEvents();
+        if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+            glfwSetWindowShouldClose(window, 1);
+
+        glClearColor(0.08f, 0.08f, 0.10f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        glUseProgram(program);
+        glBindVertexArray(vao);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+
+        glfwSwapBuffers(window);
+    }
+
+    glDeleteVertexArrays(1, &vao);
+    glDeleteBuffers(1, &vbo);
+    glDeleteProgram(program);
+    glfwDestroyWindow(window);
+    glfwTerminate();
+    return 0;
+}</code></pre>
+
+      <h2 id="errors">Debugging OpenGL errors</h2>
+      <p>OpenGL's error handling is historically terrible. Functions don't return error codes — errors accumulate in a queue that you have to poll manually with <code>glGetError()</code>. It's asynchronous and easy to ignore.</p>
+      <pre><code class="language-c">/* Basic error checking — call after any GL operation you're suspicious of */
+void check_gl_error(const char *context) {
+    GLenum err;
+    while ((err = glGetError()) != GL_NO_ERROR) {
+        const char *desc;
+        switch (err) {
+            case GL_INVALID_ENUM:       desc = "GL_INVALID_ENUM";       break;
+            case GL_INVALID_VALUE:      desc = "GL_INVALID_VALUE";      break;
+            case GL_INVALID_OPERATION:  desc = "GL_INVALID_OPERATION";  break;
+            case GL_OUT_OF_MEMORY:      desc = "GL_OUT_OF_MEMORY";      break;
+            default:                    desc = "unknown error";         break;
+        }
+        fprintf(stderr, "GL error in [%s]: 0x%x (%s)\n", context, err, desc);
+    }
+}
+
+/* Usage: */
+glBindVertexArray(vao);
+check_gl_error("after glBindVertexArray");
+glDrawArrays(GL_TRIANGLES, 0, 3);
+check_gl_error("after glDrawArrays");</code></pre>
+      <p>Modern OpenGL (4.3+) introduced <span class="key-term">Debug Output</span> — a much better system that calls a callback function whenever an error occurs, with the error details, severity, and even which GL call caused it. If your hardware supports it (most modern GPUs do), use it:</p>
+      <pre><code class="language-c">/* OpenGL 4.3+ debug callback — set this up right after context creation */
+void APIENTRY gl_debug_callback(
+    GLenum source, GLenum type, GLuint id, GLenum severity,
+    GLsizei length, const char *message, const void *userParam)
+{
+    /* Filter out low-importance notifications */
+    if (severity == GL_DEBUG_SEVERITY_NOTIFICATION) return;
+
+    fprintf(stderr, "GL Debug [severity=%s]: %s\n",
+            severity == GL_DEBUG_SEVERITY_HIGH   ? "HIGH"   :
+            severity == GL_DEBUG_SEVERITY_MEDIUM ? "MEDIUM" : "LOW",
+            message);
+}
+
+/* In your setup code (after gladLoadGLLoader): */
+glEnable(GL_DEBUG_OUTPUT);
+glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);  /* callback fires on the same thread = better stack traces */
+glDebugMessageCallback(gl_debug_callback, NULL);</code></pre>
+      <div class="callout warn">
+        <span class="callout-title">most common beginner mistakes</span>
+        In rough order of frequency: (1) Forgetting to call <code>glEnableVertexAttribArray</code> — triangle is invisible. (2) Wrong stride in <code>glVertexAttribPointer</code> — triangle is garbage/stretched. (3) Calling <code>glVertexAttribPointer</code> before binding the VAO — attribute state saved to wrong object. (4) Shader compile error not checked — draws nothing, no idea why. (5) Forgetting <code>glfwPollEvents()</code> — window appears frozen.
+      </div>
+
+      <h2 id="next">What comes next</h2>
+      <p>The orange triangle on a dark background is anticlimactic but it's genuinely the hardest part — not because it's complex, but because there's so much one-time setup before anything appears. From here, each new feature is much more incremental:</p>
+      <ul>
+        <li><span class="key-term">Uniforms</span> — pass values from your CPU code into shaders at draw time. This is how you animate a triangle (pass a time value, offset position in the shader) or tint its color dynamically. <code>glUniform1f</code>, <code>glUniformMatrix4fv</code>, etc.</li>
+        <li><span class="key-term">Multiple attributes</span> — add per-vertex color by adding RGB data to your <code>vertices[]</code> array and a second <code>glVertexAttribPointer</code> call. The rasterizer will interpolate colors across the triangle face automatically.</li>
+        <li><span class="key-term">Textures</span> — load an image, upload it to the GPU, sample it in the fragment shader using texture coordinates (UV values per vertex). Adds two new objects: <code>GL_TEXTURE_2D</code> and a sampler uniform.</li>
+        <li><span class="key-term">3D transformation</span> — add a <code>mat4</code> uniform to the vertex shader and multiply <code>gl_Position = projection * view * model * vec4(aPos, 1.0)</code>. Use a math library like <code>cglm</code> or <code>glm</code> to build the matrices on the CPU side.</li>
+        <li><span class="key-term">Depth testing</span> — enable <code>GL_DEPTH_TEST</code> and clear <code>GL_DEPTH_BUFFER_BIT</code> each frame. Now closer geometry automatically occludes farther geometry without you having to sort draw calls.</li>
+        <li><span class="key-term">Index buffers (EBO)</span> — instead of repeating vertex data for shared vertices (a quad needs 4 vertices, not 6), use an index buffer to reference vertices by index. Add a <code>GL_ELEMENT_ARRAY_BUFFER</code> and switch from <code>glDrawArrays</code> to <code>glDrawElements</code>.</li>
+      </ul>
+      <p>Each of these adds one or two new concepts but reuses everything you've already learned. The pipeline doesn't change — you just give it more to work with. The hard mental model work is done the moment you understand how that first triangle gets to the screen.</p>
+      <p>One parting observation: the reason Vulkan (and Metal, and DX12) feel so much harder than OpenGL is not because they do anything fundamentally different — it's that they make explicit all the things OpenGL hides from you: memory management on the GPU, render pass structure, synchronisation between CPU and GPU work, pipeline state objects. OpenGL's "magic" is Vulkan's explicit setup. Understanding OpenGL deeply makes Vulkan feel like "oh, this is just exposing what I already knew was happening."</p>
+      <p>So draw the triangle. Then change its color. Then animate it. Understand each piece before moving to the next. The whole world of real-time graphics opens up from exactly this starting point.</p>
+
+    </article>
+  </main>
+
+  <footer class="border-t border-border mt-8">
+    <div class="max-w-3xl mx-auto px-6 py-6 font-mono text-xs text-muted flex justify-between">
+      <span>~/boxDev2008</span>
+      <span>built with spite and tailwind</span>
+    </div>
+  </footer>
+  <script>
+    const bar = document.getElementById('reading-bar');
+    window.addEventListener('scroll', () => {
+      const d = document.documentElement;
+      bar.style.width = (d.scrollTop / (d.scrollHeight - d.clientHeight) * 100) + '%';
+    });
+  </script>
+</body>
+</html>

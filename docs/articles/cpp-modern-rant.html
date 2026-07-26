@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>F*ck Modern C (23+) and What to Use Instead — ~/boxDev2008</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-c.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-cpp.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            mono: ['JetBrains Mono', 'monospace'],
+            serif: ['Libre Baskerville', 'serif'],
+          },
+          colors: {
+            bg:      '#1c1c1e',
+            surface: '#242426',
+            border:  '#2e2e30',
+            muted:   '#6b6b72',
+            text:    '#d4d4d8',
+            bright:  '#f0f0f0',
+            accent:  '#c8a84b',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #1c1c1e; color: #d4d4d8; }
+    ::selection { background: #c8a84b33; }
+    a { transition: color .15s; }
+    code { font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; }
+    p code, li code { background: #242426; border: 1px solid #2e2e30; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.82rem; }
+    code[class*="language-"], pre[class*="language-"] {
+      font-family: 'JetBrains Mono', monospace !important;
+      font-size: 0.81rem; line-height: 1.65;
+    }
+    pre[class*="language-"] {
+      background: #161618 !important;
+      border: 1px solid #2e2e30;
+      border-radius: 8px;
+      padding: 1.4rem 1.5rem;
+      margin: 1.75rem 0;
+      overflow-x: auto;
+    }
+    .prose p { margin-bottom: 1.25rem; line-height: 1.8; }
+    .prose h2 { font-family: 'Libre Baskerville', serif; font-size: 1.3rem; font-weight: 700; color: #f0f0f0; margin: 2.5rem 0 1rem; }
+    .prose h3 { font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; color: #c8a84b; margin: 2rem 0 0.75rem; }
+    .prose ul { list-style: disc; padding-left: 1.5rem; margin-bottom: 1.25rem; }
+    .prose ul li { margin-bottom: 0.5rem; line-height: 1.7; }
+    .fade-in { animation: fadeUp .5s ease both; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body class="font-serif antialiased min-h-screen">
+
+  <nav class="border-b border-border sticky top-0 z-50 backdrop-blur-sm bg-bg/90">
+    <div class="max-w-3xl mx-auto px-6 h-14 flex items-center justify-between">
+      <a href="index.html" class="font-mono text-accent font-medium tracking-tight text-sm hover:text-bright">~/boxDev2008</a>
+      <div class="flex gap-6 font-mono text-xs text-muted">
+        <a href="index.html#about"    class="hover:text-text">about</a>
+        <a href="index.html#projects" class="hover:text-text">projects</a>
+        <a href="index.html#writing"  class="hover:text-text">writing</a>
+        <a href="index.html#contact"  class="hover:text-text">contact</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-2xl mx-auto px-6 py-16 fade-in">
+
+    <a href="index.html#writing" class="font-mono text-xs text-muted hover:text-accent transition-colors">← back to writing</a>
+
+    <div class="mt-8 mb-12">
+      <p class="font-mono text-accent text-xs tracking-widest uppercase mb-3">Mar 2026</p>
+      <h1 class="font-serif text-3xl md:text-4xl text-bright font-bold leading-tight mb-4">F*ck Modern C (23+) and What to Use in the Future</h1>
+      <p class="text-muted font-mono text-xs">~7 min read</p>
+    </div>
+
+    <article class="prose text-text">
+
+      <p>
+        With the release of C23 and its palette of drastic additions I've noticed how C as a programming
+        language is going to shit in modern versions. Here is what I mean:
+      </p>
+
+      <h2>Constexpr</h2>
+
+      <p>
+        Since the dawn of time the way we store const compile time values in C has been with macros:
+      </p>
+
+      <pre><code class="language-c">#define MAX_ENTITIES 4096</code></pre>
+
+      <p>
+        Basic and straightforward. C++ has had an additional method of doing compile time variable
+        declaration with its <code>constexpr</code> keyword. You can define constants that get evaluated
+        at compile time like this:
+      </p>
+
+      <pre><code class="language-cpp">constexpr int MAX_ENTITIES = 1024 * 4;</code></pre>
+
+      <p>
+        As you can see this allows us to have actual arithmetic done at compile time before the constant
+        is used. May seem cool but you can do the same to macros by just doing the math in your head or
+        using a calculator ahead of time, so it's kinda useless for constant variables.
+      </p>
+
+      <p>
+        Where I think <code>constexpr</code> really shines is at function evaluation (which is mostly done
+        with <code>consteval</code> in C++20 and higher). Let's say we had an asset manager with a get-asset
+        function that needs to do both a hash and a lookup into a map by receiving a constant string:
+      </p>
+
+      <pre><code class="language-cpp">Sprite assets_get_sprite(const char *const name);</code></pre>
+
+      <p>
+        In order to find the sprite in our sprite map, where each key is a string and each value is a
+        <code>Sprite</code>, this function needs to rehash the string every time AND do the lookup. Using
+        <code>constexpr</code> we can omit the hashing stage entirely and have it processed at compile time.
+      </p>
+
+      <pre><code class="language-cpp">// should be consteval in C++20 or later
+constexpr uint32_t assets_hash_name(const char* name)
+{
+    uint32_t hash = 2166136261u;
+    while (*name)
+    {
+        hash ^= static_cast&lt;uint8_t&gt;(*name++);
+        hash *= 16777619u;
+    }
+    return hash;
+}
+
+Sprite assets_get_sprite_from_hash(uint32_t hash)
+{
+    return my_lookup(hash);
+}
+
+#define assets_get_sprite(name) assets_get_sprite_from_hash(assets_hash_name(name))</code></pre>
+
+      <p>
+        As most of us may know, C23 introduced the <code>constexpr</code> keyword. The formerly C++-only
+        feature has been added to the C programming language. Or has it?
+      </p>
+
+      <p>Let's try to run this code:</p>
+
+      <pre><code class="language-c">#include &lt;stdio.h&gt;
+
+int main(void)
+{
+    constexpr int test = 67;
+    printf("%i\n", test);
+    return 0;
+}</code></pre>
+
+      <p>
+        <code>clang main.c -o main.exe -std=c23</code>
+      </p>
+
+      <p><code>67</code></p>
+
+      <p>Nice, it returns what is expected.</p>
+
+      <p>Now let's make a <code>constexpr</code> func—</p>
+
+      <pre><code class="language-none">main.c:1:1: error: 'constexpr' can only be used in variable declarations
+    1 | constexpr uint32_t assets_hash_name(const char* name)</code></pre>
+
+      <p>
+        Oh... Well... So <code>constexpr</code> is pretty much useless. WTF IS THE POINT C23!!!
+      </p>
+
+      <h2>Default Values</h2>
+
+      <p>
+        As we all know, to this day C does not have any builtin features for default parameters or
+        default struct field values.
+      </p>
+
+      <p>
+        C++ has had this issue fixed a long time ago, allowing us to do stuff like this:
+      </p>
+
+      <pre><code class="language-cpp">void renderer_draw_rect(Vec2 position, Vec2 size, Vec2 pivot = Vec2{0.5f, 0.5f}, Color color = COLOR_WHITE);</code></pre>
+
+      <pre><code class="language-cpp">struct Player
+{
+    const char *name = "Bob";
+    int health = 100;
+};</code></pre>
+
+      <p>
+        This has been one of the most requested features in C and yet it hasn't been provided, and is the
+        main reason why I consider C-styled C++ to be the goat.
+      </p>
+
+      <h2>Generics</h2>
+
+      <p>Hey, do me a favor. Can you tell me what this code does?</p>
+
+      <pre><code class="language-cpp">template &lt;std::size_t... Is&gt;
+struct __variant_idx_seq_impl {};
+
+template &lt;typename T, T... Is&gt;
+using __idx_seq = std::integer_sequence&lt;T, Is...&gt;;
+
+template &lt;std::size_t Np, typename Tp, typename... Ts&gt;
+struct __get_nth_type : __get_nth_type&lt;Np - 1, Ts...&gt; {};
+
+template &lt;typename Tp, typename... Ts&gt;
+struct __get_nth_type&lt;0, Tp, Ts...&gt; { using type = Tp; };
+
+template &lt;std::size_t Np, typename... Ts&gt;
+using __nth_type_t = typename __get_nth_type&lt;Np, Ts...&gt;::type;
+
+template &lt;typename Fp, typename Vp, std::size_t... Is&gt;
+constexpr decltype(auto) __visit_impl(Fp&& __f, Vp&& __v, __idx_seq&lt;std::size_t, Is...&gt;)
+{
+    using __ret_t = std::common_type_t&lt;
+        decltype(std::forward&lt;Fp&gt;(__f)(std::get&lt;Is&gt;(std::forward&lt;Vp&gt;(__v))))...&gt;;
+
+    constexpr __ret_t (*__vtable[])(Fp&&, Vp&&) = {
+        +[](Fp&& __f, Vp&& __v) -&gt; __ret_t {
+            return std::forward&lt;Fp&gt;(__f)(std::get&lt;Is&gt;(std::forward&lt;Vp&gt;(__v)));
+        }...
+    };
+
+    return __vtable[__v.index()](std::forward&lt;Fp&gt;(__f), std::forward&lt;Vp&gt;(__v));
+}
+
+template &lt;typename Fp, typename... Vps&gt;
+constexpr decltype(auto) __variant_visit(Fp&& __f, Vps&&... __vs)
+{
+    return __visit_impl(
+        std::forward&lt;Fp&gt;(__f),
+        std::forward_as_tuple(std::forward&lt;Vps&gt;(__vs)...),
+        std::make_index_sequence&lt;
+            std::common_type_t&lt;std::integral_constant&lt;
+                std::size_t, std::variant_size_v&lt;std::remove_reference_t&lt;Vps&gt;&gt;&gt;...&gt;::value&gt;{});
+}</code></pre>
+
+      <p>Yeah, I can't tell you either.</p>
+
+      <p>
+        However this IS valid C++ code somehow. Not even Microsoft can write code this bad (I think).
+      </p>
+
+      <p>
+        So where did everything go wrong? Well, generics are supposed to be something incredible. You can
+        execute the same code for different types without needing to write specific code for each separate
+        case. Static polymorphism is the best polymorphism in my opinion.
+      </p>
+
+      <p>
+        However, that simplicity doesn't last long. The second someone needs a bit more flexibility, they
+        reach for SFINAE, concepts, variadic packs, or specialization chains — and readable code turns into
+        the abomination you saw above.
+      </p>
+
+      <p>
+        The problem is templates were never really designed as a generics system. They're glorified text
+        substitution that got bent into doing generic programming, type computation, and metaprogramming all
+        at once. So yeah, you <em>can</em> do anything with them, but only if you're okay writing code that
+        looks like a stack trace threw up.
+      </p>
+
+      <p>So why should we even bother with templates to begin with?</p>
+
+      <p>
+        Well, as long as we stick to templates in the most minimal way possible and keep them slim without
+        caring too much about safety or compatibility, we can have simple, elegant, and reusable code:
+      </p>
+
+      <pre><code class="language-cpp">template &lt;typename T&gt;
+struct List {
+    T* data;
+    int size;
+    int capacity;
+};
+
+template &lt;typename T&gt;
+void list_push(List&lt;T&gt; *list, T value)
+{
+    // logic to push to the list and resize the buffer if needed
+}</code></pre>
+
+      <h2>End?</h2>
+
+      <p>
+        C23 had a real chance to drag C into the modern era, and instead it gave us half-features that
+        crumble the moment you push on them — <code>constexpr</code> that can't touch functions, still no
+        default values, and a neighboring C++ ecosystem where "generics" means willingly stepping into
+        template hell. If you want the good parts of C++ without the metaprogramming nightmare, write
+        C-style C++: minimal templates, no STL gymnastics, no SFINAE séances. Skip whatever C23 is trying
+        to be, and skip idiomatic modern C++ while you're at it.
+      </p>
+
+    </article>
+
+  </main>
+
+  <footer class="border-t border-border mt-8">
+    <div class="max-w-3xl mx-auto px-6 py-6 font-mono text-xs text-muted flex justify-between">
+      <span>~/boxDev2008</span>
+      <span>built with spite and tailwind</span>
+    </div>
+  </footer>
+
+</body>
+</html>
